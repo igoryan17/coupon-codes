@@ -1,0 +1,14 @@
+spring:
+  data:
+    mongodb:
+      database: coupons
+  profiles:
+    active: dev
+
+---
+
+spring:
+  data:
+    mongodb:
+      database: test
+  profiles: test
