@@ -11,9 +11,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -23,25 +27,60 @@ public class DbTest {
     @Autowired
     private CouponRepository couponRepository;
 
-    private CouponInformation couponInformation;
-
     @Before
-    public void createEntity() {
-        couponInformation = CouponInformation.builder()
-                .code("Купоны")
-                .description("Скидка 30%")
-                .id(365L)
-                .locations(Collections.singletonList("Москва"))
+    public void clearDB() {
+        couponRepository.deleteAll();
+    }
+
+    @Test
+    public void testSaveAndFind() {
+        CouponInformation couponInformation = CouponInformation.builder()
+                .id(1488L)
+                .code("testSaveAndFind")
+                .locations(Collections.singletonList("Moscow"))
                 .build();
-    }
-
-    @Test
-    public void testSave() {
         couponRepository.save(couponInformation);
+        assertEquals(couponInformation, couponRepository.findById(1488L));
     }
 
     @Test
-    public void testFindById() {
-        assertEquals(couponInformation, couponRepository.findById(couponInformation.getId()));
+    public void testFindByLocation() {
+        CouponInformation moscow = CouponInformation.builder()
+                .id(1L)
+                .locations(Collections.singletonList("Moscow"))
+                .code("testFindByLocation")
+                .build();
+        moscow = couponRepository.save(moscow);
+        List<CouponInformation> foundResult = couponRepository.findByLocation("Moscow");
+        assertTrue(foundResult.size() == 1);
+        assertEquals(moscow, couponRepository.findByLocation("Moscow").iterator().next());
+    }
+
+    @Test
+    public void testFindByLocationWithAllCities() {
+        CouponInformation moscow = CouponInformation.builder()
+                .id(1L)
+                .code("Moscow")
+                .locations(Collections.singletonList("Moscow"))
+                .build();
+        moscow = couponRepository.save(moscow);
+        CouponInformation allCity = CouponInformation.builder()
+                .id(2L)
+                .code("Все города")
+                .locations(Collections.singletonList("Все города*"))
+                .build();
+        allCity = couponRepository.save(allCity);
+        CouponInformation unexpected = CouponInformation.builder()
+                .id(3L)
+                .code("Dolgopa")
+                .locations(Collections.singletonList("Dolgopa"))
+                .build();
+        couponRepository.save(unexpected);
+        List<CouponInformation> expected = Arrays.asList(moscow, allCity);
+        Comparator<CouponInformation> comparator = Comparator.comparing(CouponInformation::getId);
+        expected.sort(comparator);
+        List<CouponInformation> actual = couponRepository.findByLocation("Moscow");
+        actual.sort(comparator);
+        assertEquals(expected, actual);
     }
 }
